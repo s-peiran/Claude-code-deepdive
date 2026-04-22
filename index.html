@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code</title>
+<style>
+/* ===== RESET ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;scroll-padding-top:2rem}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',Roboto,sans-serif;line-height:1.6;color:#e2e8f0;background:#0a0a0a}
+
+/* ===== TYPOGRAPHY ===== */
+h1,h2{font-family:'Georgia','Times New Roman',serif;font-weight:700;letter-spacing:-0.02em;line-height:1.15}
+h1{font-size:clamp(2.4rem,5vw,4rem);color:#f5f0e8}
+h2{font-size:clamp(1.8rem,3.5vw,2.8rem);color:#f5f0e8;margin-bottom:0.4em}
+h3{font-size:1rem;text-transform:uppercase;letter-spacing:0.1em;color:#c4956a;font-weight:600;margin-bottom:1.2em;font-family:inherit}
+h4{font-size:0.95rem;font-weight:700;color:#f5f0e8;margin-bottom:0.5em;font-family:inherit}
+p{max-width:720px;margin-bottom:1em;color:#94a3b8;font-size:1rem}
+code,.mono{font-family:'SF Mono','Fira Code','JetBrains Mono',monospace}
+code{background:#1e293b;padding:0.15em 0.4em;border-radius:4px;font-size:0.85em;color:#94a3b8}
+a{color:#c4956a;text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ===== LAYOUT ===== */
+.page-wrap{display:flex;min-height:100vh}
+.sidebar{position:fixed;top:0;left:0;width:220px;height:100vh;background:#0f1117;border-right:1px solid #1e293b;padding:1.5rem 0;overflow-y:auto;z-index:100;display:flex;flex-direction:column}
+.sidebar-logo{padding:0 1.2rem 1.5rem;font-family:Georgia,serif;font-size:1.1rem;color:#f5f0e8;font-weight:700;border-bottom:1px solid #1e293b;margin-bottom:0.5rem}
+.sidebar-logo span{color:#c4956a}
+.sidebar nav{flex:1;padding:0.5rem 0}
+.sidebar nav a{display:flex;align-items:center;gap:0.6rem;padding:0.55rem 1.2rem;font-size:0.82rem;color:#64748b;transition:all 0.2s;border-left:2px solid transparent}
+.sidebar nav a:hover{color:#e2e8f0;background:rgba(196,149,106,0.05);text-decoration:none}
+.sidebar nav a.active{color:#c4956a;border-left-color:#c4956a;background:rgba(196,149,106,0.08)}
+.sidebar nav a .nav-num{font-family:'SF Mono',monospace;font-size:0.7rem;color:#475569;min-width:18px}
+.sidebar-foot{padding:1rem 1.2rem;font-size:0.68rem;color:#475569;font-family:'SF Mono',monospace;border-top:1px solid #1e293b}
+
+.main{margin-left:220px;flex:1;min-width:0}
+.container{max-width:1080px;margin:0 auto;padding:0 2.5rem}
+section{padding:5rem 0}
+section+section{border-top:1px solid #1e293b}
+
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main{margin-left:0}
+  .container{padding:0 1.2rem}
+  section{padding:3rem 0}
+}
+
+/* ===== HERO ===== */
+.hero{padding:6rem 0 4rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-40%;left:-20%;width:140%;height:140%;background:radial-gradient(ellipse at 20% 40%,rgba(196,149,106,0.08) 0%,transparent 60%);pointer-events:none}
+.hero-eyebrow{font-family:'SF Mono',monospace;font-size:0.75rem;color:#c4956a;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:1.2rem;position:relative}
+.hero-sub{font-size:clamp(1rem,2vw,1.25rem);color:#94a3b8;max-width:680px;margin-top:1.2rem;position:relative;line-height:1.55}
+.hero-sub em{color:#c4956a;font-style:normal;font-weight:600}
+.pillar-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:2.5rem;position:relative}
+.pillar-card{background:#111827;border:1px solid #1e293b;border-radius:10px;padding:1.2rem 1.3rem;transition:all 0.25s;cursor:pointer;text-decoration:none;display:block}
+.pillar-card:hover{border-color:#c4956a;transform:translateY(-2px);text-decoration:none}
+.pillar-num{font-size:1.6rem;font-weight:800;color:#c4956a;font-family:'SF Mono',monospace;margin-bottom:0.3rem}
+.pillar-title{color:#f5f0e8;font-size:0.95rem;font-weight:700;margin-bottom:0.2rem}
+.pillar-desc{color:#64748b;font-size:0.78rem;line-height:1.5}
+
+/* ===== SECTION NUMBER ===== */
+.sec-num{font-family:'SF Mono',monospace;font-size:0.8rem;color:#c4956a;margin-bottom:0.5rem;opacity:0.8;letter-spacing:0.1em}
+
+/* ===== REPL LOOP DIAGRAM ===== */
+.repl-wrap{margin-top:2rem}
+.repl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;align-items:stretch;position:relative}
+.repl-step{background:#111827;border:1px solid #1e293b;border-radius:10px;padding:1.3rem 1.1rem;text-align:center;position:relative;transition:all 0.25s;cursor:pointer}
+.repl-step:hover{border-color:var(--rc,#c4956a);transform:translateY(-3px)}
+.repl-step .letter{font-family:Georgia,serif;font-size:3.2rem;font-weight:700;line-height:1;color:var(--rc,#c4956a);margin-bottom:0.3rem;display:block}
+.repl-step .word{font-weight:700;font-size:0.82rem;color:#f5f0e8;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:0.4rem}
+.repl-step .desc{font-size:0.75rem;color:#94a3b8;line-height:1.5}
+.repl-arrow{position:absolute;top:50%;right:-12px;width:24px;height:24px;background:#0a0a0a;border-radius:50%;display:flex;align-items:center;justify-content:center;transform:translateY(-50%);z-index:2;color:#c4956a;font-size:0.9rem}
+.repl-step:last-child .repl-arrow{display:none}
+.repl-loopback{margin-top:1rem;text-align:center;font-family:'SF Mono',monospace;font-size:0.78rem;color:#c4956a;padding:0.8rem;background:rgba(196,149,106,0.04);border:1px dashed #c4956a;border-radius:8px}
+.repl-loopback strong{color:#f5f0e8}
+@media(max-width:700px){
+  .repl-grid{grid-template-columns:repeat(2,1fr)}
+  .repl-step:nth-child(2) .repl-arrow{display:none}
+}
+
+.callout{background:#111827;border-left:3px solid #c4956a;border-radius:6px;padding:1.1rem 1.3rem;margin-top:1.5rem;font-size:0.9rem;color:#cbd5e1;line-height:1.65}
+.callout strong{color:#c4956a}
+
+/* ===== LAYER STACK ===== */
+.layer-stack{display:flex;flex-direction:column;gap:4px;margin-top:1rem}
+.layer{background:#111827;border:1px solid #1e293b;border-radius:8px;padding:0.95rem 1.2rem;cursor:pointer;transition:all 0.25s;position:relative;overflow:hidden;padding-left:calc(1.2rem + 4px)}
+.layer:hover{border-color:#334155}
+.layer.active{border-color:var(--lc,#c4956a);background:#0a0e17}
+.layer::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--lc,#c4956a)}
+.layer-header{display:flex;align-items:center;gap:1rem}
+.layer-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0;background:var(--lc-bg,#0d3d38);color:var(--lc,#c4956a);font-weight:700;font-family:'SF Mono',monospace}
+.layer-info{flex:1;min-width:0}
+.layer-title{font-weight:700;font-size:0.9rem;color:#f5f0e8}
+.layer-sub{font-size:0.78rem;color:#64748b;margin-top:0.15rem}
+.layer-file{font-size:0.7rem;color:#c4956a;font-family:'SF Mono',monospace;margin-top:0.2rem}
+.layer-badge{font-size:0.6rem;padding:0.2rem 0.55rem;border-radius:4px;font-weight:700;text-transform:uppercase;flex-shrink:0;margin-left:auto;letter-spacing:0.05em}
+.layer-detail{max-height:0;overflow:hidden;transition:max-height 0.4s ease}
+.layer.active .layer-detail{max-height:800px}
+.layer-detail-inner{padding:1rem 1.2rem 1rem calc(1.2rem + 4px);font-size:0.83rem;color:#cbd5e1;line-height:1.75;border-top:1px solid #1e293b;margin:0.8rem -1.2rem -0.95rem calc(-1.2rem - 4px);background:#0a0e17}
+.layer-detail-inner code{font-size:0.78rem}
+.layer-detail-inner ul{margin:0.4rem 0 0.4rem 1.2rem;color:#94a3b8}
+.layer-detail-inner li{margin-bottom:0.3rem}
+.layer-detail-inner pre{background:#0f1117;border:1px solid #1e293b;border-radius:6px;padding:0.8rem 1rem;overflow-x:auto;margin:0.5rem 0 1rem}
+.layer-detail-inner pre code{background:none;padding:0;font-size:0.72rem;color:#94a3b8;line-height:1.6}
+.layer.repl-head{background:#0f1117;cursor:default;margin-top:1.5rem;padding:1.1rem 1.3rem}
+.layer.repl-head:first-child{margin-top:0}
+.layer.repl-head:hover{border-color:#1e293b;transform:none}
+.layer.repl-head .layer-header{align-items:center;gap:1.1rem}
+.repl-head-letter{font-family:Georgia,'Times New Roman',serif;font-size:2.6rem;font-weight:700;color:var(--lc,#c4956a);line-height:1;width:56px;text-align:center;flex-shrink:0}
+.repl-head-word{font-size:0.95rem;font-weight:700;color:#f5f0e8;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.2rem}
+.repl-head-desc{font-size:0.82rem;color:#94a3b8;line-height:1.5}
+
+/* ===== MD-STYLE CODE BLOCK ===== */
+.md-code{border:1px solid #1e293b;border-radius:8px;overflow:hidden;margin:1rem 0}
+.md-code-header{background:#161b26;padding:0.45rem 1rem;font-size:0.72rem;color:#64748b;font-family:'SF Mono',monospace;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:0.5rem}
+.md-code-header::before{content:'';display:inline-flex;gap:5px;width:42px;height:10px;background:radial-gradient(circle 4px at 6px 5px,#3b3b3b 4px,transparent 4px),radial-gradient(circle 4px at 20px 5px,#3b3b3b 4px,transparent 4px),radial-gradient(circle 4px at 34px 5px,#3b3b3b 4px,transparent 4px)}
+.md-code pre{background:#060810;margin:0;border:none;border-radius:0;padding:1rem 1.2rem;overflow-x:auto}
+.md-code pre code{font-size:0.72rem;color:#94a3b8;line-height:1.6;background:none;padding:0}
+.md-code .tmpl{margin:0;border:none;border-radius:0;border-top:none}
+
+/* ===== TABLES ===== */
+.matrix-table{width:100%;border-collapse:collapse;margin-top:1rem;font-size:0.83rem;background:#111827;border:1px solid #1e293b;border-radius:10px;overflow:hidden}
+.matrix-table th,.matrix-table td{padding:0.75rem 1rem;text-align:left;border-bottom:1px solid #1e293b;vertical-align:top}
+.matrix-table th{background:#0f1117;color:#c4956a;font-weight:700;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em}
+.matrix-table tr:last-child td{border-bottom:none}
+.matrix-table td code{font-size:0.75rem}
+.matrix-table tr:hover td{background:rgba(196,149,106,0.03)}
+.bad{color:#ef4444;font-weight:700}
+.good{color:#14b8a6;font-weight:700}
+.meh{color:#eab308;font-weight:700}
+
+/* ===== COMPACTION MODE CARDS ===== */
+.mode-grid{display:flex;flex-direction:column;gap:0.6rem;margin-top:1rem}
+.mode-card{background:#111827;border:1px solid #1e293b;border-radius:8px;padding:0.95rem 1.2rem;position:relative;transition:all 0.25s;border-left:4px solid var(--mc,#c4956a);overflow:hidden}
+.mode-card:hover{border-color:#334155;border-left-color:var(--mc,#c4956a)}
+.mode-card .mode-name{font-weight:700;font-size:0.95rem;color:#f5f0e8;margin-bottom:0.3rem}
+.mode-card .mode-file{font-family:'SF Mono',monospace;font-size:0.72rem;color:var(--mc,#c4956a);margin-bottom:0.7rem}
+.mode-card .mode-desc{font-size:0.83rem;color:#94a3b8;line-height:1.6}
+.mode-card .mode-tag{display:inline-block;font-size:0.65rem;padding:0.15rem 0.5rem;border-radius:4px;font-weight:700;text-transform:uppercase;margin-top:0.6rem;letter-spacing:0.05em}
+.mode-tag.llm{background:#422006;color:#f97316}
+.mode-tag.nollm{background:#3d2a1a;color:#c4956a}
+
+/* ===== MEMORY TYPE CARDS ===== */
+.memtype-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1rem}
+.memtype{background:#111827;border:1px solid #1e293b;border-radius:10px;padding:1.2rem 1.3rem;position:relative;transition:all 0.25s}
+.memtype:hover{border-color:var(--mt,#c4956a);transform:translateY(-2px)}
+.memtype-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:700;background:var(--mt-bg,#0d3d38);color:var(--mt,#c4956a);margin-bottom:0.7rem;font-family:'SF Mono',monospace}
+.memtype-name{font-weight:700;font-size:1rem;color:#f5f0e8;margin-bottom:0.3rem}
+.memtype-desc{font-size:0.82rem;color:#94a3b8;line-height:1.6;margin-bottom:0.8rem}
+.memtype-eg{font-family:'SF Mono',monospace;font-size:0.72rem;color:#64748b;background:#0f1117;padding:0.5rem 0.7rem;border-radius:5px;border-left:2px solid var(--mt,#c4956a);line-height:1.5}
+.memtype-eg strong{color:#cbd5e1;font-family:inherit;font-weight:600}
+
+/* ===== SESSION MEMORY TEMPLATE ===== */
+.tmpl{background:#0f1117;border:1px solid #1e293b;border-radius:10px;padding:1.2rem 1.4rem;margin-top:1rem;font-family:'SF Mono',monospace;font-size:0.78rem;line-height:1.2;color:#94a3b8;overflow-x:auto;white-space:pre-wrap}
+.tmpl .t-head{color:#c4956a;font-weight:700;display:block}
+.tmpl .t-comment{color:#475569;font-style:italic;display:block}
+
+/* ===== SANDBOX VIZ ===== */
+.sb-box{background:#111827;border:1px solid #1e293b;border-radius:10px;padding:1.3rem 1.5rem;margin-top:1rem}
+.sb-box-title{font-weight:700;font-size:0.9rem;color:#f5f0e8;margin-bottom:0.8rem;display:flex;align-items:center;gap:0.5rem}
+.sb-box-title::before{content:'';width:10px;height:10px;border-radius:2px;background:var(--sb,#c4956a)}
+.sb-rows{display:flex;flex-direction:column;gap:0.5rem}
+.sb-row{display:flex;align-items:flex-start;gap:0.8rem;font-size:0.83rem}
+.sb-label{font-family:'SF Mono',monospace;font-size:0.75rem;color:#c4956a;min-width:120px;flex-shrink:0;padding-top:0.05rem}
+.sb-val{color:#94a3b8;line-height:1.55}
+.sb-val code{font-size:0.78rem}
+
+/* ===== PERMISSION PIPELINE VIZ ===== */
+.perm-pipe{display:flex;align-items:center;justify-content:space-between;gap:0.3rem;margin-top:1.5rem;flex-wrap:wrap}
+.perm-stage{flex:1;min-width:130px;background:#111827;border:1px solid #1e293b;border-radius:8px;padding:0.9rem 0.8rem;text-align:center;position:relative}
+.perm-stage .ps-num{font-family:'SF Mono',monospace;font-size:0.68rem;color:#c4956a;letter-spacing:0.1em;margin-bottom:0.3rem}
+.perm-stage .ps-title{font-weight:700;font-size:0.82rem;color:#f5f0e8;margin-bottom:0.3rem}
+.perm-stage .ps-sub{font-size:0.7rem;color:#64748b;line-height:1.4}
+.perm-arrow{color:#334155;font-size:1.1rem;flex-shrink:0}
+@media(max-width:700px){
+  .perm-pipe{flex-direction:column}
+  .perm-arrow{transform:rotate(90deg)}
+  .perm-stage{width:100%}
+}
+
+/* ===== SCROLL REVEAL ===== */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* ===== FOOTER ===== */
+footer{padding:3rem 0;text-align:center;border-top:1px solid #1e293b;color:#475569;font-size:0.8rem;font-family:'SF Mono',monospace}
+footer a{color:#c4956a}
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+<aside class="sidebar">
+  <div class="sidebar-logo">Claude<span>Code</span></div>
+  <nav>
+    <a href="#hero" class="active"><span class="nav-num">00</span> Overview</a>
+    <a href="#permissions"><span class="nav-num">01</span> Permissions</a>
+    <a href="#sandboxing"><span class="nav-num">02</span> Sandboxing</a>
+    <a href="#compaction"><span class="nav-num">03</span> Compaction</a>
+    <a href="#memory"><span class="nav-num">04</span> Memory</a>
+  </nav>
+  <div class="sidebar-foot">~ cc-viz.html</div>
+</aside>
+
+<main class="main">
+
+<!-- ===== HERO ===== -->
+<section id="hero" class="hero">
+<div class="container">
+  <div class="hero-eyebrow">Architecture Deep-Dive</div>
+  <h1>Claude Code</h1>
+  <div class="pillar-row">
+    <a href="#permissions" class="pillar-card"><div class="pillar-num">01</div><div class="pillar-title">Permissions</div><div class="pillar-desc">Three layers of defense against wrapper &amp; injection bypasses.</div></a>
+    <a href="#sandboxing" class="pillar-card"><div class="pillar-num">02</div><div class="pillar-title">Sandboxing</div><div class="pillar-desc">Bubblewrap-jailed process with filesystem &amp; network ACLs.</div></a>
+    <a href="#compaction" class="pillar-card"><div class="pillar-num">03</div><div class="pillar-title">Compaction</div><div class="pillar-desc">Five modes, from surgical cache-edits to full LLM summary.</div></a>
+    <a href="#memory" class="pillar-card"><div class="pillar-num">04</div><div class="pillar-title">Memory</div><div class="pillar-desc">Four-type taxonomy for what can't be re-derived from code.</div></a>
+  </div>
+
+  <div style="margin-top:3.5rem">
+    <h3>REPL at the Core — Inside One Turn</h3>
+    <p>Claude Code's architecture has a central loop in <code>query.ts</code>. Every turn flows through a four-stage <strong>Read · Eval · Print · Loop</strong>. The REPL owns the canonical message array in <code>REPL.tsx</code> — the single source of truth for the conversation's state. Each <strong>R / E / P / L</strong> header below introduces the substeps that belong to it; substeps inherit the colour of their parent letter. Click any substep to expand.</p>
+
+    <div class="layer-stack" id="repl-steps" style="margin-top:1.5rem"></div>
+
+    <div class="callout" style="margin-top:1.5rem">
+      <strong>The invariant —</strong> every substep either reads from or writes to <code>messagesRef.current</code>. Permissions gate <em>Tool Detection</em> (inside Eval), the sandbox gates <em>Tool Execution</em> (inside Eval), compaction rewrites the array between iterations, and memory extraction is itself a <em>Print</em>-phase hook. The four pillars are all anchored to this one loop.
+    </div>
+  </div>
+
+</div>
+</section>
+
+<!-- ===== 01 PERMISSIONS ===== -->
+<section id="permissions">
+<div class="container">
+  <div class="reveal">
+    <div class="sec-num">01</div>
+    <h2>Pattern-Based Permissions</h2>
+    <p>Claude Code's permission engine is a three-layer defense designed to make a deny rule like <code>rm *</code> survive every common bypass — wrappers, env-var prefixes, compound commands, substitutions, and shell trickery. The outer orchestrator is <code>checkSemanticsDeny()</code>; the layers below are the helpers it delegates to.</p>
+  </div>
+
+  <div class="reveal" style="margin-top:1.5rem">
+    <h3>Three Defensive Layers</h3>
+    <div class="md-code">
+      <div class="md-code-header">tree-sitter AST</div>
+      <pre><code>program                                          "VAR=hello grep -r \\"pattern\\" src/ > output.txt && echo done"
+├── list                                         "VAR=hello grep -r \\"pattern\\" src/ > output.txt && echo done"
+│   ├── redirected_statement                     "VAR=hello grep -r \\"pattern\\" src/ > output.txt"
+│   │   ├── command                              "VAR=hello grep -r \\"pattern\\" src/"
+│   │   │   ├── variable_assignment              "VAR=hello"
+│   │   │   │   ├── variable_name                "VAR"
+│   │   │   │   └── word                         "hello"
+│   │   │   ├── word                             "grep"
+│   │   │   ├── word                             "-r"
+│   │   │   ├── string                           "\\"pattern\\""
+│   │   │   │   └── string_content               "pattern"
+│   │   │   └── word                             "src/"
+│   │   └── file_redirect                        "> output.txt"
+│   │       ├── >                                ">"
+│   │       └── word                             "output.txt"
+│   ├── &&                                       "&&"
+│   └── command                                  "echo done"
+│       ├── word                                 "echo"
+│       └── word                                 "done"</code></pre>
+    </div>
+    <div class="layer-stack" id="perm-layers"></div>
+  </div>
+
+  <div class="reveal" style="margin-top:2.5rem">
+    <h3>Bypass Comparison — deny rule <code>rm *</code></h3>
+    <p>Seven real attack patterns, how Claude Code stops each, and where OpenCode's tree-sitter-only approach falls short.</p>
+    <div style="overflow-x:auto">
+    <table class="matrix-table">
+      <thead>
+        <tr><th style="width:28%">Attack</th><th style="width:36%">Claude Code defense</th><th style="width:36%">OpenCode defense</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>FOO=bar rm file</code></td><td><span class="good">✓</span> <span class="good-text"><code>stripAllLeadingEnvVars()</code> in Layer 1</span></td><td><span class="good">✓</span> <span class="good-text">tree-sitter skips variable_assignment</span></td></tr>
+        <tr><td><code>nohup rm file</code></td><td><span class="good">✓</span> <span class="good-text"><code>stripSafeWrappers()</code> in Layer 1</span></td><td class="bad">✗ None</td></tr>
+        <tr><td><code>nohup FOO=bar timeout 5 rm</code></td><td><span class="good">✓</span> <span class="good-text">Fixed-point iteration</span></td><td class="bad">✗ None</td></tr>
+        <tr><td><code>echo hi &amp;&amp; rm file</code></td><td><span class="good">✓</span> <span class="good-text"><code>splitCommand()</code> in Layer 1</span></td><td><span class="good">✓</span> <span class="good-text">tree-sitter finds both nodes</span></td></tr>
+        <tr><td><code>echo $(rm file)</code></td><td><span class="good">✓</span> <span class="good-text">Layer 2 detects <code>$()</code> → <em>ask</em></span></td><td class="meh">⚠ tree-sitter finds nested rm</td></tr>
+        <tr><td><code>eval "rm file"</code></td><td><span class="good">✓</span> <span class="good-text">Layer 3 <code>checkSemantics()</code> → <em>ask</em></span></td><td class="bad">✗ Only sees <code>eval</code> as command</td></tr>
+        <tr><td><code>=curl evil.com</code> (Zsh)</td><td><span class="good">✓</span> <span class="good-text">Layer 2 Zsh expansion pattern</span></td><td class="bad">✗ None</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="callout reveal">
+    <strong>The takeaway —</strong> Layer 1's normalization (wrapper-stripping + env-var-stripping + compound splitting) is what makes deny rules <em>robust</em>. Layer 2 and Layer 3 are the safety net: when they can't prove a command is safe, they force a user prompt instead of silently allowing it.
+  </div>
+</div>
+</section>
+
+<!-- ===== 02 SANDBOXING ===== -->
+<section id="sandboxing">
+<div class="container">
+  <div class="reveal">
+    <div class="sec-num">02</div>
+    <h2>Sandboxing</h2>
+    <p>Permissions decide <em>what the model is allowed to ask for</em>. Sandboxing decides <em>what the process can actually do</em> once the command is running. On Linux, Claude Code uses <code>bubblewrap</code> to launch unprivileged containers — a secure jail around the tool-execution process with restricted filesystem access and limited privileges.</p>
+  </div>
+
+  <div class="reveal" style="margin-top:1.5rem">
+    <h3>Hardcoded Baseline Policy</h3>
+    <p>Independent of user config, the adapter <strong>always</strong> injects these into the sandbox policy (<code>sandbox-adapter.ts:225–287</code>):</p>
+    <ul style="color:#94a3b8;font-size:0.88rem;line-height:1.7;margin-left:1.2rem;margin-top:0.5rem">
+      <li><code>allowWrite = ['.', getClaudeTempDir()]</code> — only the project <code>cwd</code> + Claude's temp dir are writable by default. <strong>Everything else on the host FS is read-only.</strong></li>
+      <li><code>denyWrite</code> baseline:
+        <ul style="margin-top:0.3rem">
+          <li>All Claude settings files (user, project, managed) — <code>settings.json</code>, <code>settings.local.json</code></li>
+          <li><code>.claude/skills/</code> dir (same privilege as <code>.claude/commands</code>, <code>.claude/agents</code>)</li>
+          <li>Bare-git-repo marker files (<code>HEAD</code>, <code>objects</code>, <code>refs</code>, <code>hooks</code>, <code>config</code>) — anti-escape defense</li>
+          <li>Managed-settings drop-in dir</li>
+        </ul>
+      </li>
+      <li>Network → forced through <code>socat</code> proxy (seccomp + namespace)</li>
+      <li>Seccomp filter blocks dangerous syscalls</li>
+    </ul>
+  </div>
+
+  <div class="reveal" style="margin-top:1.5rem">
+    <h3>What the Sandbox Controls</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;margin-top:1rem">
+
+      <div class="sb-box" style="--sb:#c4956a">
+        <div class="sb-box-title">Filesystem</div>
+        <div class="sb-rows">
+          <div class="sb-row"><span class="sb-label">allowRead</span><span class="sb-val">Paths the jailed process can read.</span></div>
+          <div class="sb-row"><span class="sb-label">denyRead</span><span class="sb-val">Paths redacted even if parent dir is readable.</span></div>
+          <div class="sb-row"><span class="sb-label">allowWrite</span><span class="sb-val">Writable roots (project dir, scratch, etc.).</span></div>
+          <div class="sb-row"><span class="sb-label">denyWrite</span><span class="sb-val">Explicit write blocks (dotfiles, system dirs).</span></div>
+          <div class="sb-row"><span class="sb-label">source</span><span class="sb-val"><code>sandbox-adapter.ts:369–374</code></span></div>
+        </div>
+      </div>
+
+      <div class="sb-box" style="--sb:#60a5fa">
+        <div class="sb-box-title">Network</div>
+        <div class="sb-rows">
+          <div class="sb-row"><span class="sb-label">allowedDomains</span><span class="sb-val">Domain allow-list for HTTP(S).</span></div>
+          <div class="sb-row"><span class="sb-label">deniedDomains</span><span class="sb-val">Explicit denylist; overrides allow.</span></div>
+          <div class="sb-row"><span class="sb-label">unixSockets</span><span class="sb-val"><code>allowUnixSockets</code> / <code>allowAllUnixSockets</code> for IPC control.</span></div>
+          <div class="sb-row"><span class="sb-label">localBinding</span><span class="sb-val">Whether processes can bind local ports.</span></div>
+          <div class="sb-row"><span class="sb-label">proxies</span><span class="sb-val"><code>httpProxyPort</code> &amp; <code>socksProxyPort</code> for egress routing.</span></div>
+          <div class="sb-row"><span class="sb-label">source</span><span class="sb-val"><code>sandbox-adapter.ts:360–368</code></span></div>
+        </div>
+      </div>
+
+      <div class="sb-box" style="--sb:#a78bfa">
+        <div class="sb-box-title">Violation Tracking</div>
+        <div class="sb-rows">
+          <div class="sb-row"><span class="sb-label">what</span><span class="sb-val">Logs every time a sandboxed command attempts a restricted operation.</span></div>
+          <div class="sb-row"><span class="sb-label">why</span><span class="sb-val">Turns silent failures into audit trail — the model sees the error and can correct course.</span></div>
+          <div class="sb-row"><span class="sb-label">pairs-with</span><span class="sb-val">Permission engine above. A denied <em>attempt</em> here means the permission layer let something through that the sandbox caught.</span></div>
+        </div>
+      </div>
+
+    </div>
+    <p style="margin-top:1.2rem">Sandbox is <strong>disabled by default</strong>. If the user never opts in, <code>isSandboxingEnabled()</code> returns <code>false</code>:</p>
+    <div class="md-code">
+      <div class="md-code-header">sandbox-adapter.ts:459–463</div>
+      <pre><code>function getSandboxEnabledSetting(): boolean {
+  try {
+    const settings = getSettings_DEPRECATED()
+    return settings?.sandbox?.enabled ?? false</code></pre>
+    </div>
+  </div>
+
+  <div class="callout reveal">
+    <strong>Contrast with OpenCode —</strong> OpenCode's security model is <em>entirely</em> permission-prompt based. No jail, no filesystem ACLs, no network scoping. If the user clicks "allow" on a malicious command, there's nothing underneath to catch it.
+  </div>
+</div>
+</section>
+
+<!-- ===== 03 COMPACTION ===== -->
+<section id="compaction">
+<div class="container">
+  <div class="reveal">
+    <div class="sec-num">03</div>
+    <h2>Compaction</h2>
+    <p>The context window is finite; conversations aren't. Claude Code ships <strong>five</strong> distinct compaction modes, from surgical cache-edits that don't touch the LLM to full 9-section structured summaries. The right mode fires based on token thresholds, cache state, and whether recent activity has been tool-heavy.</p>
+  </div>
+
+  <div class="reveal" style="margin-top:1.5rem">
+    <h3>Five Compaction Modes</h3>
+    <div class="mode-grid">
+      <div class="mode-card" style="--mc:#a78bfa">
+        <div class="mode-name">Session Memory Compact</div>
+        <div class="mode-file">sessionMemoryCompact.ts</div>
+        <div class="mode-desc">Uses the separately-maintained session memory (running notes extracted across turns) as the summary — no fresh LLM call needed at compaction time.</div>
+        <span class="mode-tag nollm">no LLM</span>
+      </div>
+      <div class="mode-card" style="--mc:#14b8a6">
+        <div class="mode-name">Microcompact</div>
+        <div class="mode-file">microCompact.ts</div>
+        <div class="mode-desc">Clears old tool-result content without an LLM call. Two sub-paths: time-based (cold cache) and cached-MC (surgical <code>cache_edits</code> that don't invalidate the prefix).</div>
+        <span class="mode-tag nollm">no LLM</span>
+      </div>
+      <div class="mode-card" style="--mc:#f97316">
+        <div class="mode-name">Partial: <code>up_to</code></div>
+        <div class="mode-file">compact.ts:772</div>
+        <div class="mode-desc">Summarizes messages <em>before</em> a pivot index, keeping recent ones raw. Mirror-image of <code>from</code>.</div>
+        <span class="mode-tag llm">LLM call</span>
+      </div>
+      <div class="mode-card" style="--mc:#f97316">
+        <div class="mode-name">Partial: <code>from</code></div>
+        <div class="mode-file">compact.ts:772</div>
+        <div class="mode-desc">Summarizes only messages <em>after</em> a pivot index, keeping earlier messages intact. Preserves the prompt cache prefix.</div>
+        <span class="mode-tag llm">LLM call</span>
+      </div>
+      <div class="mode-card" style="--mc:#c4956a">
+        <div class="mode-name">Full Compaction</div>
+        <div class="mode-file">compact.ts</div>
+        <div class="mode-desc">An LLM summarizes the entire conversation into a structured 9-section summary. Triggered by manual <code>/compact</code> or auto-compact.</div>
+        <span class="mode-tag llm">LLM call</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="reveal" style="margin-top:2rem">
+    <h3>Session Memory — The Secret Sauce</h3>
+    <h4>Phase A: Background Extraction <code>sessionMemory.ts</code></h4>
+    <p>A post-sampling hook runs after every API response on the main thread. The hook checks <code>shouldExtractMemory()</code> on every turn. Extraction triggers when both conditions are met:</p>
+    <div class="md-code">
+      <div class="md-code-header">sessionMemory.ts:168–170</div>
+      <pre><code>const shouldExtract =
+  (hasMetTokenThreshold && hasMetToolCallThreshold) ||
+  (hasMetTokenThreshold && !hasToolCallsInLastTurn)</code></pre>
+    </div>
+    <p>There's also an initialization threshold — extraction doesn't start until the conversation reaches a minimum token count.</p>
+    <p>When triggered, it spawns a forked subagent that:</p>
+    <ul style="color:#94a3b8;font-size:0.88rem;line-height:1.7;margin-left:1.2rem">
+      <li>Reads the current session memory file from disk</li>
+      <li>Gets an update prompt with the current notes embedded</li>
+      <li>Uses the <code>Edit</code> tool (and <em>only</em> the Edit tool) to update the markdown file</li>
+    </ul>
+    <p>The subagent is sandboxed — it can only edit the memory file, nothing else:</p>
+    <p>The structured markdown file has nine fixed sections:</p>
+    <div class="md-code">
+      <div class="md-code-header">Session Memory File</div>
+      <div class="tmpl"><span class="t-head"># Session Title</span>
+<span class="t-comment">_5–10 word descriptive title; info-dense, no filler_</span>
+
+<span class="t-head"># Current State</span>
+<span class="t-comment">_What's being worked on right now. Pending tasks. Next steps._</span>
+
+<span class="t-head"># Task Specification</span>
+<span class="t-comment">_What the user asked for; design decisions; explanatory context._</span>
+
+<span class="t-head"># Files and Functions</span>
+<span class="t-comment">_Important files, what they contain, why they're relevant._</span>
+
+<span class="t-head"># Workflow</span>
+<span class="t-comment">_Bash commands run and in what order; how to interpret output._</span>
+
+<span class="t-head"># Errors &amp; Corrections</span>
+<span class="t-comment">_Errors and fixes. What the user corrected. Failed approaches to avoid._</span>
+
+<span class="t-head"># Codebase and System Documentation</span>
+<span class="t-comment">_System components; how they fit together._</span>
+
+<span class="t-head"># Learnings</span>
+<span class="t-comment">_What worked, what didn't, what to avoid._</span>
+
+<span class="t-head"># Key Results</span>
+<span class="t-comment">_Exact answers, tables, or outputs the user asked for._</span>
+
+<span class="t-head"># Worklog</span>
+<span class="t-comment">_Step-by-step, very terse summary of every attempt._</span>
+      </div>
+    </div>
+
+    <h4 style="margin-top:1.5rem">Phase B: Using Session Memory at Compaction Time <code>sessionMemoryCompact.ts</code></h4>
+    <div class="md-code">
+      <div class="md-code-header">sessionMemoryCompact.ts — trySessionMemoryCompaction</div>
+      <pre><code>/**
+ * Try to use session memory for compaction instead of traditional compaction.
+ * Returns null if session memory compaction cannot be used.
+ *
+ * Handles two scenarios:
+ * 1. Normal case: lastSummarizedMessageId is set, keep only messages after that ID
+ * 2. Resumed session: lastSummarizedMessageId is not set but session memory has content,
+ *    keep all messages but use session memory as the summary
+ */
+export async function trySessionMemoryCompaction(
+  messages: Message[],
+  agentId?: AgentId,
+  autoCompactThreshold?: number,
+): Promise&lt;CompactionResult | null&gt; {
+  if (!shouldUseSessionMemoryCompaction()) {
+    return null
+  }
+
+  // Initialize config from remote (only fetches once)
+  await initSessionMemoryCompactConfig()
+
+  // Wait for any in-progress session memory extraction to complete (with timeout)
+  await waitForSessionMemoryExtraction()
+
+  const lastSummarizedMessageId = getLastSummarizedMessageId()
+  const sessionMemory = await getSessionMemoryContent() // Reads the session memory file
+
+  // No session memory file exists at all -&gt; fall back to full compaction
+  if (!sessionMemory) {
+    logEvent('tengu_sm_compact_no_session_memory', {})
+    return null
+  }
+  . . .
+  // Calculate the starting index for messages to keep
+  // This starts from lastSummarizedIndex, expands to meet minimums,
+  // and adjusts to not split tool_use/tool_result pairs
+  const startIndex = calculateMessagesToKeepIndex(
+    messages,
+    lastSummarizedIndex,
+  )</code></pre>
+    </div>
+    <p>Preserves recent messages (configurable: min 10K tokens, max 40K tokens, at least 5 text-block messages).</p>
+    <ul style="color:#94a3b8;font-size:0.88rem;line-height:1.7;margin-left:1.2rem">
+      <li><code>lastSummarizedIndex</code> — The index of the last message that the session memory has already captured via background extraction. Everything at or before this index is considered "summarized" in the session memory file.</li>
+      <li><code>calculateMessagesToKeepIndex</code> — The index of the first message to preserve as raw messages in the post-compaction context. This is always ≤ <code>lastSummarizedIndex + 1</code>, because it expands backwards from the boundary to meet the minimum thresholds.</li>
+    </ul>
+
+    <h3 style="margin-top:2rem">OpenCode — 2 Modes</h3>
+    <div class="mode-grid">
+      <div class="mode-card" style="--mc:#14b8a6">
+        <div class="mode-name">Prune</div>
+        <div class="mode-file">compaction.ts:prune</div>
+        <div class="mode-desc">Walks backwards through message parts, finds completed tool outputs older than 2 user turns, and marks them as compacted (cleared) if they exceed <code>PRUNE_PROTECT</code> (40K tokens). No LLM call. Effectively OpenCode's version of microcompact.</div>
+        <span class="mode-tag nollm">no LLM</span>
+        <ul style="color:#94a3b8;font-size:0.82rem;line-height:1.7;margin:0.6rem 0 0 1.2rem">
+          <li>Walks backwards from newest messages</li>
+          <li>Protects the 40K most recent tokens of tool output</li>
+          <li>Marks older tool outputs with <code>time.compacted</code> timestamp</li>
+          <li>Protects <code>"skill"</code> tool outputs from pruning</li>
+        </ul>
+      </div>
+      <div class="mode-card" style="--mc:#c4956a">
+        <div class="mode-name">Full Compaction</div>
+        <div class="mode-file">compaction.ts:processCompaction</div>
+        <div class="mode-desc">LLM summarizes conversation using a structured prompt. Single mode, no partial variants.</div>
+        <span class="mode-tag llm">LLM call</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="reveal" style="margin-top:2rem">
+    <h3>Post-Compaction Restoration</h3>
+    <p>Compaction is effectively a "new session" from the model's perspective, so a lot has to be re-injected before the next turn. Claude Code restores:</p>
+    <div class="layer-stack" id="postcompact-layers"></div>
+
+    <h3 style="margin-top:2rem">OpenCode Restoration</h3>
+    <div class="layer-stack" id="oc-postcompact-layers"></div>
+  </div>
+</div>
+</section>
+
+<!-- ===== 04 MEMORY ===== -->
+<section id="memory">
+<div class="container">
+  <div class="reveal">
+    <div class="sec-num">04</div>
+    <h2>Persistent Memory</h2>
+    <p>Memory lives in <code>~/.claude/memdir/</code> as markdown files with YAML frontmatter. A background extractor writes them; <code>findRelevantMemories()</code> uses Sonnet to select up to five files per query and inject them into context.</p>
+    <p>The taxonomy is built around a single question: <strong>is this knowledge derivable from the current project state?</strong> Code patterns, architecture, file structure, and git history are all re-derivable — they are deliberately excluded. The four types below capture what the repository alone cannot tell you.</p>
+  </div>
+
+  <div class="memtype-grid reveal">
+    <div class="memtype" style="--mt:#c4956a;--mt-bg:#3d2a1a">
+      <div class="memtype-icon">U</div>
+      <div class="memtype-name">User</div>
+      <div class="memtype-desc">Who the user is — role, goals, responsibilities, expertise. Shapes how Claude tailors responses to the specific person it's working with.</div>
+      <div class="memtype-eg"><strong>Example:</strong> senior backend engineer, deep Go experience, new to React</div>
+    </div>
+
+    <div class="memtype" style="--mt:#f97316;--mt-bg:#422006">
+      <div class="memtype-icon">F</div>
+      <div class="memtype-name">Feedback</div>
+      <div class="memtype-desc">Guidance about <em>how</em> to approach work — what to avoid and what's already been validated. Records from <em>both</em> failure and success, so Claude doesn't drift away from approved patterns while avoiding past mistakes.</div>
+      <div class="memtype-eg"><strong>Example:</strong> integration tests must hit a real DB — mocked tests masked a broken migration last quarter</div>
+    </div>
+
+    <div class="memtype" style="--mt:#60a5fa;--mt-bg:#0a2540">
+      <div class="memtype-icon">P</div>
+      <div class="memtype-name">Project</div>
+      <div class="memtype-desc">Ongoing work, initiatives, bugs, incidents — the <em>why</em> behind the current work that isn't visible in code or git history. The motivational context.</div>
+      <div class="memtype-eg"><strong>Example:</strong> auth middleware rewrite is driven by legal/compliance around session token storage, not tech debt</div>
+    </div>
+
+    <div class="memtype" style="--mt:#a78bfa;--mt-bg:#2a1a4a">
+      <div class="memtype-icon">R</div>
+      <div class="memtype-name">Reference</div>
+      <div class="memtype-desc">Pointers to where information lives in <em>external</em> systems — Linear projects, Grafana dashboards, internal wikis. Memory of where to look, not what's there.</div>
+      <div class="memtype-eg"><strong>Example:</strong> pipeline bugs tracked in Linear project "INGEST"</div>
+    </div>
+  </div>
+
+  <div class="reveal" style="margin-top:2.5rem">
+    <h3>Team Memory — Three Defensive Layers</h3>
+    <p>Team-synced memory files come from <em>other users</em>, which is a serious attack surface. Three layers protect the write path:</p>
+    <div class="layer-stack" id="teammem-layers"></div>
+  </div>
+
+  <div class="callout reveal">
+    <strong>The bigger picture —</strong> memory is what lets the REPL feel continuous across invocations. Compaction trims the active turn's context; memory hydrates the <em>next</em> turn's with facts that would otherwise have to be re-discovered. Together, they keep Claude Code coherent across sessions without bloating any single API call.
+  </div>
+</div>
+</section>
+
+<footer>
+  Deep dive into &middot; <a href="#hero">Claude Code</a>
+</footer>
+
+</main>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+const replSteps = [
+  {
+    num: '3',
+    title: 'History — the canonical messages array',
+    sub: 'React state in REPL.tsx is the single source of truth',
+    file: 'REPL.tsx:~1182',
+    color: '#14b8a6',
+    bg: '#0d3d38',
+    detail: `
+      <p>The in-memory conversation lives inside a <code>useState</code> hook. The mutable ref is what every async consumer (streaming, tool execution, compaction) reads against:</p>
+      <pre><code>const [messages, rawSetMessages] = useState&lt;MessageType[]&gt;(initialMessages ?? [])
+const messagesRef = useRef(messages)</code></pre>
+      <p>Using both a React state <em>and</em> a ref is intentional: the state triggers re-renders for the UI; the ref gives long-lived async code (like <code>StreamingToolExecutor</code>) a stable, always-current view of the conversation without stale closures.</p>
+    `
+  },
+  {
+    num: '4',
+    title: 'System Prompt Assembly',
+    sub: 'Base prompt + user context + system context, all memoized',
+    file: 'constants/prompts.ts · context.ts · utils/queryContext.ts',
+    color: '#14b8a6',
+    bg: '#0d3d38',
+    detail: `
+      <p>Three files collaborate to assemble what the model sees before the first user message. Orchestrated in parallel for latency:</p>
+      <ul>
+        <li><code>constants/prompts.ts:444</code> &mdash; <code>getSystemPrompt()</code> builds the base prompt from tool definitions, model name, MCP servers, and additional working directories.</li>
+        <li><code>context.ts:116–189</code> &mdash; <code>getSystemContext()</code> (git status, optional cache-breaker injection) and <code>getUserContext()</code> (<code>CLAUDE.md</code>, date). <strong>Memoized for the duration of the conversation.</strong></li>
+        <li><code>utils/queryContext.ts:44</code> &mdash; <code>fetchSystemPromptParts()</code> orchestrates all three concurrently via <code>Promise.all</code>.</li>
+      </ul>
+      <p>Memoization is load-bearing: it stabilizes the cacheable prefix so Anthropic's prompt cache hits on turn 2 and beyond. Dynamic content (git status, date) is captured once and then appended to the tail of the system prompt via <code>appendSystemContext()</code> in <code>utils/api.ts:437</code> — so only the tail turns over across sessions, not the prefix.</p>
+    `
+  },
+  {
+    num: '6',
+    title: 'Tool Detection',
+    sub: 'findToolByName() resolves tool_use blocks as they stream',
+    file: 'Tool.ts · query.ts:829 · services/tools/StreamingToolExecutor.ts',
+    color: '#60a5fa',
+    bg: '#0a2540',
+    detail: `
+      <p>Detection happens <em>during</em> the API stream, not after it completes — this is how tool execution overlaps with generation:</p>
+      <ul>
+        <li><code>query.ts:829</code> inspects each streamed assistant content block for <code>type === 'tool_use'</code>.</li>
+        <li>Each <code>ToolUseBlock</code> is handed to <code>StreamingToolExecutor.addTool()</code> at <code>:842</code>, which enqueues it.</li>
+        <li>Inside <code>addTool()</code>, <code>findToolByName()</code> (in <code>Tool.ts</code>, not <code>tools.ts</code>) resolves the concrete tool definition.</li>
+        <li>Permission checking happens inside <code>runToolUse()</code> in <code>services/tools/toolExecution.ts</code>, which calls <code>canUseTool()</code>.</li>
+        <li>If permission is denied, execution pauses and <code>REPL.tsx</code> renders a <strong>PermissionRequest dialog</strong>.</li>
+      </ul>
+      <p>This is the hand-off to the Permissions pillar below — the three-layer defense runs before any tool actually executes.</p>
+    `
+  },
+  {
+    num: '7',
+    title: 'Tool Execution Loop',
+    sub: 'Concurrent-safe tools run in parallel with streaming',
+    file: 'services/tools/StreamingToolExecutor.ts:40 · services/tools/toolOrchestration.ts:19',
+    color: '#60a5fa',
+    bg: '#0a2540',
+    detail: `
+      <p>Two execution paths coexist, selected by <code>config.gates.streamingToolExecution</code>:</p>
+      <ul>
+        <li><strong>StreamingToolExecutor</strong> (gate on) — tools run <em>while the API is still streaming</em>. Concurrent-safe tools (e.g., <code>Read</code>) run in parallel under a shared budget; non-concurrent tools (e.g., <code>Bash</code>) run exclusively. Bash errors abort a child <code>siblingAbortController</code>, killing in-flight siblings without ending the turn.</li>
+        <li><strong>runTools()</strong> in <code>services/tools/toolOrchestration.ts:19</code> (gate off) — non-streaming batched path that runs <em>after</em> the full API response arrives. Still concurrent: <code>partitionToolCalls</code> splits blocks into concurrent-safe vs non-concurrent groups, dispatching the former through <code>runToolsConcurrently</code> (up to <code>CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY</code>, default 10) and the latter through <code>runToolsSerially</code>.</li>
+      </ul>
+      <p>Results are appended to <code>toolResults[]</code> in <code>query.ts</code>, and the agentic <code>while(true)</code> loop at <code>:307</code> continues. The message-array rewrite at <code>:1715–1727</code> is what closes the loop:</p>
+      <pre><code>state = {
+  messages: [...messagesForQuery, ...assistantMessages, ...toolResults],
+  ...
+}</code></pre>
+      <p>The inner agentic loop lives <em>inside</em> Eval — the next iteration's input is the previous iteration's output, concatenated. When no more tool_use blocks arrive, Eval ends and control flows to Print.</p>
+    `
+  },
+  {
+    num: '10',
+    title: 'Post-Sampling Hooks',
+    sub: 'Background housekeeping that fires after each API response',
+    file: 'utils/backgroundHousekeeping.ts · setup.ts:294',
+    color: '#a78bfa',
+    bg: '#2a1a4a',
+    detail: `
+      <p>After every assistant response is sampled, a set of background hooks runs on the main thread. Registered at startup:</p>
+      <pre><code>export function startBackgroundHousekeeping(): void {
+  void initMagicDocs()
+  void initSkillImprovement()
+  ...
+}
+
+if (!isBareMode()) {
+  initSessionMemory() // Synchronous — registers hook, gate check is lazy
+}</code></pre>
+      <p>Three post-sampling hooks ship by default:</p>
+      <ul>
+        <li><strong>Magic Docs</strong> — self-maintaining markdown files. A doc flagged with the <code># MAGIC DOC:</code> header (matched by <code>MAGIC_DOC_HEADER_PATTERN</code> at <code>services/MagicDocs/magicDocs.ts:33</code>) is kept up-to-date automatically as the project evolves.</li>
+        <li><strong>extractSessionMemory</strong> — gated on message/token/tool-call thresholds (<code>minimumMessageTokensToInit</code>, <code>minimumTokensBetweenUpdate</code>, <code>toolCallsBetweenUpdates</code>). When triggered, <code>runForkedAgent</code> spawns a sandboxed subagent with <code>querySource: 'session_memory'</code> and a <code>canUseTool</code> restricted to editing the memory file only. The isolated context prevents polluting the parent's prompt cache.</li>
+        <li><strong>skillImprovement</strong> — watches user messages during skill execution. When the user corrects, augments, or retrains a skill mid-run ("no, use Y instead," "always do Z first"), a fast classifier extracts the improvement and surfaces a suggestion to rewrite the <code>SKILL.md</code>. Closes the loop that would otherwise drop learnings at session end.</li>
+      </ul>
+      <p>Skills live at <code>.claude/skills/&lt;name&gt;/SKILL.md</code> under project, user (<code>~/.claude/</code>), or policy (managed) scopes.</p>
+    `
+  }
+];
+
+const permLayers = [
+  {
+    num: '01',
+    title: 'Command Normalization',
+    sub: 'Strips wrappers & env-vars so denied commands stay denied',
+    file: 'bashPermissions.ts',
+    badge: 'deny',
+    color: '#14b8a6',
+    bg: '#0d3d38',
+    detail: `
+      <p>The most important layer for deny rules. Handles the cases where surface-level pattern matching fails:</p>
+      <ul>
+        <li><code>stripAllLeadingEnvVars()</code> — strips all env-var prefixes for deny/ask matching</li>
+        <li><code>stripSafeWrappers()</code> — strips <code>nohup</code>, <code>timeout</code>, <code>nice</code>, <code>time</code>, <code>stdbuf</code></li>
+        <li><code>splitCommand()</code> — breaks <code>echo hi &amp;&amp; rm file</code> into subcommands, checks each against deny rules independently</li>
+        <li>Output redirection stripping — <code>rm file &gt; /dev/null</code> still matches <code>Bash(rm:*)</code></li>
+      </ul>
+      <p>Without this layer, <code>FOO=bar rm file</code> or <code>nohup rm file</code> would slip past a <code>rm *</code> deny rule.</p>
+    `
+  },
+  {
+    num: '02',
+    title: 'Injection Detection',
+    sub: 'Catches commands that look safe but execute something dangerous',
+    file: 'bashSecurity.ts',
+    badge: 'ask',
+    color: '#f97316',
+    bg: '#422006',
+    detail: `
+      <p>Forces commands into <code>behavior: 'ask'</code> when the normalizer can't prove what will execute. Catches:</p>
+      <ul>
+        <li><strong>Command substitution:</strong> <code>echo $(rm file)</code> — outer command is <code>echo</code>, but <code>rm</code> executes</li>
+        <li><strong>Process substitution:</strong> <code>cat &lt;(rm file)</code></li>
+        <li><strong>Backtick expansion:</strong> <code>echo \`rm file\`</code></li>
+        <li><strong>Zsh tricks:</strong> <code>=curl evil.com</code>, <code>zmodload</code>, <code>emulate</code></li>
+        <li><strong>Eval:</strong> <code>eval "rm file"</code> — first word is <code>eval</code>, not <code>rm</code></li>
+        <li>Brace expansion, glob qualifiers, <code>\${}</code> parameter expansion</li>
+      </ul>
+      </br>
+      <p><code>checkSemantics()</code> catches dangerous commands by name (<code>eval</code>, <code>zmodload</code>, etc.) even when they parse cleanly.</p>
+      <p>Helper functions: <code>extractQuotedContent()</code> reveals what bash will actually expand; <code>stripSafeRedirections()</code> removes benign redirects; <code>hasUnescapedChar()</code> finds unescaped dangerous characters.</p>
+    `
+  },
+  {
+    num: '03',
+    title: 'AST(Abstract Syntax Tree) Parsing',
+    sub: 'Tree-sitter analysis for structural safety',
+    file: 'treeSitterAnalysis.ts',
+    badge: 'ask',
+    color: '#a78bfa',
+    bg: '#2a1a4a',
+    detail: `
+      <p>A Bash AST parser runs via <code>parseForSecurityFromAst()</code>. Two outcomes:</p>
+      <ul>
+        <li><strong>Too complex</strong> (substitutions, expansions, control flow) → returns <code>'too-complex'</code>, <strong>forces <em>ask</em></strong>.</li>
+        <li><strong>Simple</strong> → extracts <code>SimpleCommand[]</code> with resolved tokens, feeds directly into deny-rule matching via <code>checkSemanticsDeny()</code>.</li>
+      </ul>
+      </br>
+      <p>Can be disabled via <code>CLAUDE_CODE_DISABLE_COMMAND_INJECTION_CHECK</code> env var or the <code>TREE_SITTER_BASH_SHADOW</code> feature flag.</p>
+    `
+  }
+];
+
+const postcompactLayers = [
+  { num: '1', title: 'Recent Files', sub: 'Up to 5 files, ≤5K tokens each, ≤50K total', file: 'compact.ts:517–539', color: '#c4956a', bg: '#0d3d38' },
+  { num: '2', title: 'Active Plan', sub: 'Plan attachment + plan-mode instructions', file: 'compact.ts:545–555', color: '#c4956a', bg: '#0d3d38' },
+  { num: '3', title: 'Invoked Skills', sub: '≤5K per skill, ≤25K total budget', file: 'compact.ts:558–561', color: '#60a5fa', bg: '#0a2540' },
+  { num: '4', title: 'Deferred Tool Schemas', sub: 'Re-announced from scratch', file: 'compact.ts:567–585', color: '#60a5fa', bg: '#0a2540' },
+  { num: '5', title: 'Agent & MCP Deltas', sub: 'Agent listing & MCP instruction diffs', file: 'compact.ts', color: '#a78bfa', bg: '#2a1a4a' },
+  { num: '6', title: 'Session-Start Hooks', sub: 'Re-executed — compaction is a "new session"', file: 'compact.ts:592–594', color: '#a78bfa', bg: '#2a1a4a',
+    detail: `<p>Hooks that normally fire at session start are re-executed after compaction, since compaction is effectively a &ldquo;new session&rdquo; from the model's perspective.</p>` }
+];
+
+const teammemLayers = [
+  {
+    num: '01',
+    title: 'Input Sanitization',
+    sub: 'sanitizePathKey — rejects known evasion patterns',
+    file: 'teamMemPaths.ts:22–64',
+    color: '#c4956a',
+    bg: '#0d3d38',
+    detail: `<p>Rejects null bytes, URL-encoded traversals (<code>%2e%2e%2f</code>), Unicode normalization attacks (fullwidth <code>．．／</code>), backslashes, and absolute paths before anything is written.</p>`
+  },
+  {
+    num: '02',
+    title: 'String-Level Containment',
+    sub: 'validateTeamMemWritePath — resolved path must start with team dir',
+    file: 'teamMemPaths.ts:237–245',
+    color: '#60a5fa',
+    bg: '#0a2540',
+    detail: `<p>After <code>resolve(filePath)</code>, the absolute path must still start with the team memory directory. Any <code>../</code> escape that survived sanitization is caught here.</p>`
+  },
+  {
+    num: '03',
+    title: 'Symlink Resolution',
+    sub: 'realpathDeepestExisting — walks tree, resolves symlinks',
+    file: 'teamMemPaths.ts:109–171',
+    color: '#a78bfa',
+    bg: '#2a1a4a',
+    detail: `<p>Walks up the directory tree, resolving symlinks on the deepest existing ancestor. Catches symlink-based escapes that string validation cannot detect, and detects dangling symlinks (attack vector: <code>writeFile</code> follows the link to write outside the jail).</p>`
+  }
+];
+
+// ============================================================
+// RENDERERS
+// ============================================================
+
+function layerHTML(l, withDetail) {
+  if (l.isHeader) {
+    return `
+    <div class="layer repl-head" style="--lc:${l.color};--lc-bg:${l.bg}">
+      <div class="layer-header">
+        <div class="repl-head-letter">${l.letter}</div>
+        <div class="layer-info">
+          <div class="repl-head-word">${l.word}</div>
+          <div class="repl-head-desc">${l.desc}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  }
+  return `
+    <div class="layer" style="--lc:${l.color};--lc-bg:${l.bg}" ${withDetail ? 'onclick="this.classList.toggle(\'active\')"' : ''}>
+      <div class="layer-header">
+        <div class="layer-icon"${l.num ? '' : ' style="background:transparent"'}>${l.num || ''}</div>
+        <div class="layer-info">
+          <div class="layer-title">${l.title}</div>
+          <div class="layer-sub">${l.sub}</div>
+          ${l.file ? `<div class="layer-file">${l.file}</div>` : ''}
+        </div>
+        ${l.badge ? `<span class="layer-badge" style="background:${l.bg};color:${l.color}">${l.badge}</span>` : ''}
+      </div>
+      ${withDetail && l.detail ? `<div class="layer-detail"><div class="layer-detail-inner">${l.detail}</div></div>` : ''}
+    </div>
+  `;
+}
+
+function render(id, data, withDetail) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = data.map(l => layerHTML(l, withDetail)).join('');
+}
+
+render('repl-steps', replSteps, true);
+render('perm-layers', permLayers, true);
+render('postcompact-layers', postcompactLayers, true);
+
+const ocPostcompactLayers = [
+  { num: '1', title: 'Structured Summary', sub: 'Assistant turn with summary: true — the LLM-generated recap', file: 'compaction.ts:113–138', color: '#14b8a6', bg: '#0d3d38' },
+  { num: '2', title: 'User Message That Triggered the Overflow', sub: 'Replay block recreates the user message that triggered overflow (minus compaction parts)', file: 'compaction.ts:202–224', color: '#60a5fa', bg: '#0a2540' },
+  { num: '3', title: 'Synthetic Continue Nudge', sub: '"Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed."', file: 'compaction.ts:213–224', color: '#a78bfa', bg: '#2a1a4a' }
+];
+render('oc-postcompact-layers', ocPostcompactLayers, false);
+
+render('teammem-layers', teammemLayers, true);
+
+// ============================================================
+// SCROLL REVEAL
+// ============================================================
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// ============================================================
+// SIDEBAR NAV ACTIVE STATE
+// ============================================================
+const sectionIds = ['hero', 'permissions', 'sandboxing', 'compaction', 'memory'];
+const navLinks = document.querySelectorAll('.sidebar nav a');
+const secObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const idx = sectionIds.indexOf(e.target.id);
+      if (idx >= 0) navLinks.forEach((l, i) => l.classList.toggle('active', i === idx));
+    }
+  });
+}, { threshold: 0.15 });
+sectionIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) secObs.observe(el);
+});
+</script>
+
+</body>
+</html>
